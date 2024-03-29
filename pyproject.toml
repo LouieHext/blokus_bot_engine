@@ -1,0 +1,83 @@
+[build-system]
+requires = ["flit"]
+build-backend = "flit.buildapi"
+
+[project]
+
+name =  "blokus_sim"
+authors = [
+    {name = "Louie Hext", email = "louie.hext@gmail.com"},
+]
+description = "Sample Python Project for creating a new Python Module"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Private :: Do Not Upload"
+]
+requires-python = ">=3.10"
+dynamic = ["version"]
+
+dependencies = [
+    "matplotlib==3.6.0",
+    "numpy==1.23.3",
+]
+
+[project.optional-dependencies]
+
+
+[project.urls]
+Documentation = ""
+Source = ""
+Tracker = ""
+
+##############################
+#           TOOLS            #
+##############################
+
+# LINTING
+# FLIT
+[tool.flit.module]
+name = "blokus_sim"
+
+# BLACK
+[tool.black]
+line-length = 120
+fast = true
+targets = "src"
+
+# ISORT
+[tool.isort]
+profile = "black"
+
+# FLAKE8
+[tool.flake8]
+max-line-length = 120
+select = "F,E,W,B,B901,B902,B903"
+exclude = [
+    ".eggs",
+    ".git",
+    ".tox",
+    "nssm",
+    "obj",
+    "out",
+    "packages",
+    "pywin32",
+    "tests",
+    "swagger_client"
+]
+ignore = [
+    "E722",
+    "B001",
+    "W503",
+    "E203",
+    "E266",
+    "F403",
+    "F401",
+    "F821" # undefined name used for type annotation
+
+]
+targets = "src"
