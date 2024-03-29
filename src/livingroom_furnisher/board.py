@@ -136,6 +136,15 @@ class Board:
             return
         raise InvalidMove(f"The piece {move.piece_type} was already used by {move.colour}")
     
+    def _validate_overlap(self, move: Move):
+        raise NotImplementedError
+    
+    def _validate_corner_relation(self,move:Move):
+        raise NotImplementedError
+    
+    def _validate_edge_relation(self, move:Move):
+        raise NotImplementedError
+    
     def _get_initial_piece_dict(self) -> dict:
         """Gets the initial dictionary of all the pieces
         the keys are the colours,
