@@ -4,7 +4,7 @@ build-backend = "flit.buildapi"
 
 [project]
 
-name =  "blokus_sim"
+name =  "blokus"
 authors = [
     {name = "Louie Hext", email = "louie.hext@gmail.com"},
 ]
@@ -28,12 +28,6 @@ dependencies = [
 
 [project.optional-dependencies]
 
-
-[project.urls]
-Documentation = ""
-Source = ""
-Tracker = ""
-
 ##############################
 #           TOOLS            #
 ##############################
@@ -41,7 +35,7 @@ Tracker = ""
 # LINTING
 # FLIT
 [tool.flit.module]
-name = "blokus_sim"
+name = "blokus"
 
 # BLACK
 [tool.black]
