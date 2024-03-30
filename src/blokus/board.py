@@ -3,10 +3,10 @@
 # Extenral Imports
 import numpy as np
 # Intenral Imports
-from blokus_sim.board_states import BoardStatesEnum
-from blokus_sim.move import Move
-from blokus_sim.piece_types import PieceTypeEnum
-from blokus_sim.exceptions import InvalidMove
+from blokus.board_states import BoardStatesEnum
+from blokus.move import Move
+from blokus.piece_types import PieceTypeEnum
+from blokus.exceptions import InvalidMove
 
 class Board:
     """
@@ -137,8 +137,20 @@ class Board:
         raise InvalidMove(f"The piece {move.piece_type} was already used by {move.colour}")
     
     def _validate_overlap(self, move: Move):
-        raise NotImplementedError
-    
+        """Checks if the move is trying to place on an already populated grid cell
+
+        Args:
+            move (Move): Move to validate
+
+        Raises:
+            InvalidMove: if the move overalsp an existing piece
+        """
+        # check the move against the board array
+        for idx_pair in move.idxs:
+            row, col = idx_pair
+            if self.array[row][col]:
+                raise InvalidMove(f"cell {row,col} is already populated")
+            
     def _validate_corner_relation(self,move:Move):
         raise NotImplementedError
     
