@@ -11,7 +11,7 @@ setup:
  5. create your own branch
  6. add a bot to the bot files
 
-#TODO
+# TODO
 
 PIECES
 1. validate that all pieces and variations are possible
