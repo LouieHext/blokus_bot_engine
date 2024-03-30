@@ -36,7 +36,7 @@ class BasePiece:
             list[list[tuple[int]]]: list of all the possible variations of the piece
         """
         # get the 4 rotations
-        rotations = self._get_rotations_of_piece()
+        rotations = self._get_rotations_of_binary_repr(self.base_binary_repr)
         # for each rotation get the mirror also
         all_rotations = []
         for rotation in rotations:
@@ -59,6 +59,8 @@ class BasePiece:
             list[np.ndarray]: list of all rotations
         """
         rotations = [binary_repr]
+        if binary_repr.shape[0] == 1:
+            return rotations
         for _ in range(3):
             rotations.append(np.rot90(rotations[-1]))
         return rotations
@@ -72,6 +74,8 @@ class BasePiece:
         Returns:
             np.ndarray: mirror of the binary representation
         """
+        if binary_repr.shape[0] == 1:
+            return binary_repr
         return np.fliplr(binary_repr)
 
     def _remove_duplicate_binary_reprs(self, all_variations: list[np.ndarray]) -> list[np.ndarray]:

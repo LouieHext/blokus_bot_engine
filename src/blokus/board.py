@@ -6,7 +6,7 @@ import numpy as np
 from blokus.board_states import BoardStatesEnum
 from blokus.exceptions import InvalidMove
 from blokus.move import Move
-from blokus.piece_types import PieceTypeEnum
+from blokus.pieces.piece_set import PieceSet, build_full_piece_set
 
 
 class Board:
@@ -159,7 +159,7 @@ class Board:
     def _validate_edge_relation(self, move: Move):
         raise NotImplementedError
 
-    def _get_initial_piece_dict(self) -> dict:
+    def _get_initial_piece_dict(self) -> dict[BoardStatesEnum, PieceSet]:
         """Gets the initial dictionary of all the pieces
         the keys are the colours,
         the values are the list of all piece enums
@@ -167,10 +167,10 @@ class Board:
             dict: all piece enums for each colour
         """
         return {
-            BoardStatesEnum.RED: list(PieceTypeEnum),
-            BoardStatesEnum.GREEN: list(PieceTypeEnum),
-            BoardStatesEnum.YELLOW: list(PieceTypeEnum),
-            BoardStatesEnum.BLUE: list(PieceTypeEnum),
+            BoardStatesEnum.RED: build_full_piece_set(),
+            BoardStatesEnum.GREEN: build_full_piece_set(),
+            BoardStatesEnum.YELLOW: build_full_piece_set(),
+            BoardStatesEnum.BLUE: build_full_piece_set(),
         }
 
     def _get_empty_board(self) -> np.ndarry:

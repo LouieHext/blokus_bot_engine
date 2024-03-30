@@ -71,7 +71,10 @@ ignore = [
     "E266",
     "F403",
     "F401",
-    "F821" # undefined name used for type annotation
+    "F821", # undefined name used for type annotation
+    "E741",
+    "F405",
+
 
 ]
 targets = "src"

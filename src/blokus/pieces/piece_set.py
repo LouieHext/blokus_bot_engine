@@ -23,4 +23,10 @@ class PieceSet:
                 self.pieces.remove(piece)
 
 
-FullPieceSet = PieceSet(pieces=[I1, I2, I3, I4, I5, L4, L5, T4, T5, Z4, Z5, V3, V5, E, F, X, U, N, W, O, P, Y])
+def build_full_piece_set() -> PieceSet:
+    """Builds a full set of pieces
+
+    Returns:
+        PieceSet: a full set of pieces
+    """
+    return PieceSet(pieces=[I1, I2, I3, I4, I5, L4, L5, T4, T5, Z4, Z5, V3, V5, F, X, U, N, W, O, P, Y])
