@@ -10,6 +10,9 @@ setup:
 
  5. create your own branch
  6. add a bot to the bot files
+tidy code:
+ - black .
+ - isort ./src
 
 # TODO
 
