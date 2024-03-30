@@ -1,12 +1,13 @@
-
 # Python Imports
 # Extenral Imports
 import numpy as np
+
 # Intenral Imports
 from blokus.board_states import BoardStatesEnum
+from blokus.exceptions import InvalidMove
 from blokus.move import Move
 from blokus.piece_types import PieceTypeEnum
-from blokus.exceptions import InvalidMove
+
 
 class Board:
     """
@@ -18,6 +19,7 @@ class Board:
 
     additionally the board supports plotting
     """
+
     def __init__(self, dimension: int = 16):
         self.__dimension = dimension
         self.__array = self._get_empty_board()
@@ -32,7 +34,7 @@ class Board:
             np.ndarry: current state of the board
         """
         return self.__array
-    
+
     @property
     def dimension(self) -> int:
         """returns the dimension of the board,
@@ -42,7 +44,7 @@ class Board:
             int: dimensino of the board
         """
         return self.__dimension
-    
+
     def play_move(self, move: Move):
         """Validates the move and if it is valid plays it on the board
 
@@ -60,7 +62,7 @@ class Board:
             self.__array[row][col] = move.colour.value
         self.remaining_pieces_dict[move.colour].remove(move.piece_type)
 
-    def get_valid_moves_for_colour(self, colour:BoardStatesEnum) -> list[Move]:
+    def get_valid_moves_for_colour(self, colour: BoardStatesEnum) -> list[Move]:
         """
         Returns a list of all valid moves for the supplied colour.
         This takes into the account the board state and the remaining
@@ -73,8 +75,8 @@ class Board:
             list[Move]: list of valid moves
         """
         raise NotImplementedError
-    
-    def check_move_validity(self, move: Move, return_at_first_fail:bool = False) -> list[str]:
+
+    def check_move_validity(self, move: Move, return_at_first_fail: bool = False) -> list[str]:
         """Checks the move validity, if there are any issues returns the associated
         erorr strings.
 
@@ -105,7 +107,7 @@ class Board:
                 return error_list
         # return error list
         return error_list
-    
+
     def validate_move(self, move: Move) -> bool:
         """Validates that a move meets the rule requirements
         for the current board state.
@@ -119,9 +121,9 @@ class Board:
         Returns:
             bool: True if the move is valid, False otherwise
         """
-        error_list =  self.check_move_validity(move)
+        error_list = self.check_move_validity(move)
         return not error_list
-                
+
     def _validate_unused_piece(self, move: Move):
         """Validates if the piece associated with the move
         has not yet been used by the colour
@@ -135,7 +137,7 @@ class Board:
         if move.piece_type in self.remaining_pieces_dict[move.colour]:
             return
         raise InvalidMove(f"The piece {move.piece_type} was already used by {move.colour}")
-    
+
     def _validate_overlap(self, move: Move):
         """Checks if the move is trying to place on an already populated grid cell
 
@@ -150,13 +152,13 @@ class Board:
             row, col = idx_pair
             if self.array[row][col]:
                 raise InvalidMove(f"cell {row,col} is already populated")
-            
-    def _validate_corner_relation(self,move:Move):
+
+    def _validate_corner_relation(self, move: Move):
         raise NotImplementedError
-    
-    def _validate_edge_relation(self, move:Move):
+
+    def _validate_edge_relation(self, move: Move):
         raise NotImplementedError
-    
+
     def _get_initial_piece_dict(self) -> dict:
         """Gets the initial dictionary of all the pieces
         the keys are the colours,
@@ -164,13 +166,13 @@ class Board:
         Returns:
             dict: all piece enums for each colour
         """
-        return  {
+        return {
             BoardStatesEnum.RED: list(PieceTypeEnum),
             BoardStatesEnum.GREEN: list(PieceTypeEnum),
             BoardStatesEnum.YELLOW: list(PieceTypeEnum),
             BoardStatesEnum.BLUE: list(PieceTypeEnum),
         }
-    
+
     def _get_empty_board(self) -> np.ndarry:
         """Returns an empty array to represent the board.
         The board is represented as a nxn array of ints
@@ -178,4 +180,4 @@ class Board:
         Returns:
             np.ndarry: empty board of zeros
         """
-        return np.zeros((self.dimension,self.dimension), dtype = int)
+        return np.zeros((self.dimension, self.dimension), dtype=int)
