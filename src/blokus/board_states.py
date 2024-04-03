@@ -1,10 +1,11 @@
-
 # Python Imports
 from enum import Enum
+
 # Extenral Imports
 # Intenral Imports
 
-class BoardStates(Enum):
+
+class BoardStatesEnum(Enum):
     EMPTY: 0
     RED: 1
     GREEN: 2
