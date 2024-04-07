@@ -25,7 +25,6 @@ class PieceNameEnum(Enum):
     Z5 = "Z5"
     V3 = "V3"
     V5 = "V5"
-    E = "E"
     F = "F"
     X = "X"
     U = "U"

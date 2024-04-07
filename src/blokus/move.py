@@ -4,7 +4,7 @@ from dataclasses import dataclass
 # External Imports
 # Internal Imports
 from blokus.board_states import BoardStatesEnum
-from blokus.pieces.base import BasePiece
+from blokus.pieces.piece_names import PieceNameEnum
 
 
 @dataclass
@@ -18,5 +18,5 @@ class Move:
     """
 
     colour: BoardStatesEnum
-    piece: BasePiece
+    piece_type: PieceNameEnum
     idxs: list[tuple[int]]
