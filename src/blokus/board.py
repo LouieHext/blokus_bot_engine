@@ -1,6 +1,7 @@
 # Python Imports
 # Extenral Imports
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 
 # Intenral Imports
@@ -21,10 +22,11 @@ class Board:
     additionally the board supports plotting
     """
 
-    def __init__(self, dimension: int = 16):
+    def __init__(self, dimension: int = 20):
         self.__dimension = dimension
         self.__array = self._get_empty_board()
         self.piece_sets = self._get_initial_piece_dict()
+        self.moves_checked = {BoardStatesEnum.RED: [], BoardStatesEnum.GREEN: [], BoardStatesEnum.YELLOW: [], BoardStatesEnum.BLUE: []}
 
     @property
     def array(self) -> np.ndarray:
@@ -35,6 +37,15 @@ class Board:
             np.ndarray: current state of the board
         """
         return self.__array
+    
+    @property
+    def flat_array(self) -> np.ndarray:
+        """Returns the state of the board as a flat array
+
+        Returns:
+            np.ndarray: flat array of the board
+        """
+        return self.array.flatten()
 
     @property
     def dimension(self) -> int:
@@ -45,6 +56,23 @@ class Board:
             int: dimensino of the board
         """
         return self.__dimension
+    @property
+    def arr_dimension(self) -> int:
+        """Returns the dimension of the array
+
+        Returns:
+            int: dimension of the array
+        """
+        return self.__dimension -1
+    @property
+    def corner_idxs(self) -> list[tuple[int]]:
+        """Returns the corner idxs of the board.
+
+        Returns:
+            list[tuple[int]]: corner idxs
+        """
+        corner_idxs = [(0, 0), (0, self.arr_dimension), (self.arr_dimension, 0), (self.arr_dimension, self.arr_dimension)]
+        return corner_idxs
 
     def play_move(self, move: Move):
         """Validates the move and if it is valid plays it on the board
@@ -54,7 +82,7 @@ class Board:
 
         Raises:
             InvalidMove: If the move played was invalid
-        """
+    """
         move_errors = self.check_move_validity(move)
         if move_errors:
             raise InvalidMove(f"supplied Move is invalid due to {move_errors}")
@@ -65,7 +93,29 @@ class Board:
 
     def display_board(self):
         """Displays the board via matplotlib"""
-        plt.imshow(self.array)
+        cmaplist = ["grey","red","green","yellow","blue"]
+        cmap = mpl.colors.LinearSegmentedColormap.from_list('blokus', cmaplist, 5)
+        bounds = np.linspace(0,4,5)
+        norm = mpl.colors.BoundaryNorm(bounds, 4)
+        plt.imshow(self.array, cmap = cmap, norm = norm)
+        plt.show(block = False)
+        plt.pause(1e-5)
+        plt.clf()
+
+    def display_move(self, move: Move):
+        """Displays the move on the board via matplotlib
+
+        Args:
+            move (Move): move to display
+        """
+        temp_array = self._get_empty_board()
+        for idx_pair in move.idxs:
+            row, col = idx_pair
+            temp_array[row][col] = move.colour.value
+        plt.figure()
+        plt.imshow(self.array,cmap="binary")
+        plt.figure()
+        plt.imshow(temp_array,cmap="copper")
         plt.show()
 
     def get_valid_moves_for_colour(self, colour: BoardStatesEnum) -> list[Move]:
@@ -80,7 +130,121 @@ class Board:
         Returns:
             list[Move]: list of valid moves
         """
-        raise NotImplementedError
+        # find all corners for the colour
+        # find the origin associated with the corner
+        # for each piece, check all variants
+        valid_moves = self._find_valid_moves_brute_force(colour)
+        return valid_moves
+    
+    def _find_valid_moves_brute_force(self, colour: BoardStatesEnum) -> list[Move]:
+        """Finds all valid moves for the colour via brute force.
+        This finds all possible origins for the colour, then for each origin
+        checks all possible piece placements.
+        Valid moves are then returned.
+
+        Args:
+            colour (BoardStatesEnum): colour to find moves for
+
+        Returns:
+            list[Move]: list of valid moves
+        """
+        valid_moves = []
+        possible_origins = self._get_possible_origins_for_colour(colour)
+        count = 0
+        for origin in possible_origins:
+            for piece in self.piece_sets[colour].pieces:
+                for piece_rep in piece.all_idx_representations:
+                    count += 1
+                    # build move from representation
+                    move = Move.from_piece_representation(colour, piece.name, piece_rep, origin)
+                    # check if the piece can be placed
+                    if self.validate_move(move):
+                        valid_moves.append(move)
+        self.moves_checked[colour].append(count)
+        return valid_moves
+
+    def _get_possible_origins_for_colour(self, colour: BoardStatesEnum) -> list[tuple[int]]:
+        """Returns all possible origins for the colour.
+        Each origin is associated with a corner of a piece of the colour.
+
+        Args:
+            colour (BoardStatesEnum): colour to get origins for
+
+        Returns:
+            list[tuple[int]]: list of all possible origins
+        """
+        # if the colour has no pieces on the board, return any free corner
+        if not any(value == colour.value for value in self.flat_array):
+            empty_corners = [corner for corner in self.corner_idxs if not self.array[corner[0]][corner[1]]]
+            return empty_corners
+        # get all the corners for the colour
+        corner_idxs = self._get_corner_idxs_for_colour(colour)
+        # get all the origins for the corners
+        origins = []
+        for corner in corner_idxs:
+            origins += self._get_valid_origins_from_corner(corner,colour)
+        return origins
+    
+    def _get_valid_origins_from_corner(self, corner: tuple[int],colour: BoardStatesEnum) -> list[tuple[int]]:
+        """Returns all valid origins from a corner.
+        This is all the diagonals from the corner
+
+        Args:
+            corner (tuple[int]): corner to get origins from
+
+        Returns:
+            list[tuple[int]]: list of all valid origins
+        """
+        # get all the diagonals from the corner
+        possible_origins =  self.get_diagonal_idxs_from_idx(corner)
+        valid_origins = []
+        for origin in possible_origins:
+            # remove any that are already populated
+            if self.array[origin[0]][origin[1]]:
+                continue
+            # get the adjacent neighbours
+            adjacent_neighbours = self.get_adjacent_idxs_from_idx(origin)
+            # check if any of the neighbours are the same colour
+            if any(self.array[neighbour[0]][neighbour[1]] == colour.value for neighbour in adjacent_neighbours):
+                continue
+
+            valid_origins.append(origin)
+        return valid_origins
+
+    def _get_corner_idxs_for_colour(self, colour: BoardStatesEnum) -> list[tuple[int]]:
+        """Returns all the corner idxs for the colour
+
+        Args:
+            colour (BoardStatesEnum): colour to get corners for
+
+        Returns:
+            list[tuple[int]]: list of corner idxs
+        """
+        corner_idxs = []
+        check_sum = 0
+        for row in range(self.dimension):
+            for col in range(self.dimension):
+                check_sum += 1
+                # if the cell is not the colour, skip
+                if not self.array[row][col] == colour.value:
+                    continue
+                # find the horizontal and vertical neighbours
+                vertical_neighbours = [(row, col - 1), (row, col + 1)]
+                vertical_neighbours = [idx for idx in vertical_neighbours if self.check_coord_in_board(idx)]
+                horizontal_neighbours = [(row - 1, col), (row + 1, col)]
+                horizontal_neighbours = [idx for idx in horizontal_neighbours if self.check_coord_in_board(idx)]
+                horizonal_score = sum([self.array[_row][_col] == colour.value for _row, _col in horizontal_neighbours])
+                vertical_score = sum([self.array[_row][_col] == colour.value for _row, _col in vertical_neighbours])
+                # account for game borders
+                if row in [0, self.arr_dimension]:
+                    horizonal_score += 1
+                if col in [0, self.arr_dimension]:
+                    vertical_score += 1
+                # corner has only 1 neighbour in vertical or horizontal
+                if horizonal_score >1 or vertical_score > 1:
+                    continue
+                corner_idxs.append((row, col))
+        return corner_idxs
 
     def check_move_validity(
         self, move: Move, return_at_first_fail: bool = True, validation_methods: list[callable] = None
@@ -153,8 +317,7 @@ class Board:
             bool: if the supplied idx is a corner
         """
         # checks if an idx is a corner idx.
-        corner_idxs = [(0, 0), (0, self.dimension), (self.dimension, 0), (self.dimension, self.dimension)]
-        return idx in corner_idxs
+        return idx in self.corner_idxs
 
     def get_diagonal_idxs_from_idx(self, idx: tuple[int]) -> list[tuple[int]]:
         """Gets the diagonal idxs from a given index.
@@ -212,7 +375,7 @@ class Board:
         Returns:
             bool : if the coord pair is in the board
         """
-        return all([0 <= coord <= self.dimension for coord in coord_pair])
+        return all([0 <= coord <= self.arr_dimension for coord in coord_pair])
 
     def _validate_piece_idx_matches_type(self, move: Move):
         """Validates that the idx of the move match the topology of the piece

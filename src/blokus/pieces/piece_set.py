@@ -21,6 +21,7 @@ class PieceSet:
         for piece in self.pieces:
             if piece.name == name:
                 self.pieces.remove(piece)
+                return
 
     def __contains__(self, piece: BasePiece) -> bool:
         return piece in self.pieces
@@ -59,4 +60,5 @@ def build_full_piece_set() -> PieceSet:
     Returns:
         PieceSet: a full set of pieces
     """
-    return PieceSet(pieces=[I1, I2, I3, I4, I5, L4, L5, T4, T5, Z4, Z5, V3, V5, F, X, U, N, W, O, P, Y])
+    full_list = [I1, I2, I3, I4, I5, L4, L5, T4, T5, Z4, Z5, V3, V5, F, X, U, N, W, O, P, Y]
+    return PieceSet(pieces=full_list)
