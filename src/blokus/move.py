@@ -1,7 +1,9 @@
 # Python Imports
 from dataclasses import dataclass
+
 # External Imports
 import numpy as np
+
 # Internal Imports
 from blokus.board_states import BoardStatesEnum
 from blokus.pieces.piece_names import PieceNameEnum
@@ -21,9 +23,14 @@ class Move:
     piece_type: PieceNameEnum
     idxs: list[tuple[int]]
 
-
     @classmethod
-    def from_piece_representation(cls, colour: BoardStatesEnum, piece_type: PieceNameEnum, relative_representation: list[tuple[int]], origin: tuple[int]) -> "Move":
+    def from_piece_representation(
+        cls,
+        colour: BoardStatesEnum,
+        piece_type: PieceNameEnum,
+        relative_representation: list[tuple[int]],
+        origin: tuple[int],
+    ) -> "Move":
         """Creates a move from a piece representation
 
         Args:
