@@ -8,9 +8,9 @@ from blokus.pieces.piece_names import PieceNameEnum
 
 class BasePiece:
     def __init__(self, base_binary_repr: np.ndarray, name: PieceNameEnum):
+        self.name = name
         self.base_binary_repr = base_binary_repr
         self.all_idx_representations = self.generate_all_variants_from_base()
-        self.name = name
 
     @property
     def size(self) -> int:
@@ -22,7 +22,7 @@ class BasePiece:
         """
         return np.sum(self.base_binary_repr)
 
-    def generate_all_variants_from_base(self):
+    def generate_all_variants_from_base(self) -> list[list[tuple[int]]]:
         """
         Generates all the possible variations of a piece in terms
         of indexes.
@@ -35,6 +35,8 @@ class BasePiece:
         Returns:
             list[list[tuple[int]]]: list of all the possible variations of the piece
         """
+        if self.name == PieceNameEnum.I1:
+            return [[(0, 0)]]
         # get the 4 rotations
         rotations = self._get_rotations_of_binary_repr(self.base_binary_repr)
         # for each rotation get the mirror also
@@ -46,6 +48,8 @@ class BasePiece:
         unqiue_rotations = self._remove_duplicate_binary_reprs(all_rotations)
         # convert to list of indexes
         all_idx_variations = [self._convert_binary_repr_to_idx(rotation) for rotation in unqiue_rotations]
+        # convert to list of tuples
+        all_idx_variations = [arr.tolist() for arr in all_idx_variations]
         return all_idx_variations
 
     def _get_rotations_of_binary_repr(self, binary_repr: np.ndarray) -> list[np.ndarray]:

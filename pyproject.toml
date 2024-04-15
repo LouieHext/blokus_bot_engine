@@ -72,7 +72,7 @@ ignore = [
     "F403",
     "F401",
     "F821", # undefined name used for type annotation
-    "E741",
+    "E741", 
     "F405",
 
 
