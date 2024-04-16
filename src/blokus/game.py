@@ -73,10 +73,12 @@ class Game:
             self.play_turn()
             if display:
                 self.board.display_board()
-        self.board.display_board(stop_code=True)
+            logging.info(self.board.get_score_str())
+        if display:
+            self.board.display_board(stop_code=True)
+        print(f"FINAL SCORE: {self.board.get_score_str()}")
         return sorted(self.players, key = lambda x: self.board.get_score_for_colour(x.colour))
         
-
     def play_turn(self):
         """Plays a single turn for all players
 
@@ -122,7 +124,7 @@ class Game:
             ValueError: if not all the colours are present
         """
         # check player count
-        if len(self.players) == 4:
+        if len(self.players) != 4:
             raise ValueError(f"Game requires 4 players not {len(self.players)}")
         # check the colours
         active_colours = [p.colour for p in self.players]

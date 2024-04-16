@@ -7,12 +7,15 @@ from blokus.board_states import BoardStatesEnum
 from blokus.move import Move
 
 
-class RandomBot(BasePlayer):
-    """This bot plays randomly simply selecting any of the valid moves
+class ShyBot(BasePlayer):
+    """This bot plays with a shy style,
+    it always plays the smallest possible piece. 
+    If multiple pieces are possible it will randomly
+    select between them.
     """
 
     def __init__(self, board: Board, colour: BoardStatesEnum):
-        """initialiser for random bot, simply calls base
+        """initialiser for shy bot, simply calls base
 
         Args:
             board (Board): board the game is being played on
@@ -29,4 +32,6 @@ class RandomBot(BasePlayer):
         Returns:
             Move: randomly selected move
         """
-        return random.choice(moves)
+        smallest_move =  min(moves, key=lambda x: len(x.idxs))
+        smallest_moves = [move for move in moves if len(move.idxs) == len(smallest_move.idxs)]
+        return random.choice(smallest_moves)
