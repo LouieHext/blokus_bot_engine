@@ -4,7 +4,6 @@ from blokus.board_states import BoardStatesEnum
 from blokus.player.base_player import BasePlayer
 from blokus.exceptions import InvalidMove
 
-
 class Game:
     def __init__(self, board: Board, players: list[BasePlayer], timeout: float = 30):
         self._board = board
@@ -77,6 +76,8 @@ class Game:
         if display:
             self.board.display_board(stop_code=True)
         print(f"FINAL SCORE: {self.board.get_score_str()}")
+        print(f"brute force {self.board.brute_force_time}")
+        print(f"smart {self.board.smart_time}")
         return sorted(self.players, key = lambda x: self.board.get_score_for_colour(x.colour))
         
     def play_turn(self):

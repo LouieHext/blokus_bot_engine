@@ -1,5 +1,3 @@
-# Python imports
-from abc import abstractmethod
 # Internal Imports
 from blokus.player.base_player import BasePlayer
 from blokus.board import Board

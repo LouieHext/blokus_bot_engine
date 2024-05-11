@@ -32,6 +32,8 @@ class GreedyBot(BasePlayer):
         Returns:
             Move: randomly selected move
         """
+        random.shuffle(moves)
         biggest_move = max(moves, key=lambda x: len(x.idxs))
         biggest_moves = [move for move in moves if len(move.idxs) == len(biggest_move.idxs)]
+        # find biggest dimensinon
         return random.choice(biggest_moves)
