@@ -73,11 +73,10 @@ class Game:
             if display:
                 self.board.display_board()
             logging.info(self.board.get_score_str())
+        self.board.print_times()
         if display:
             self.board.display_board(stop_code=True)
         print(f"FINAL SCORE: {self.board.get_score_str()}")
-        print(f"brute force {self.board.brute_force_time}")
-        print(f"smart {self.board.smart_time}")
         return sorted(self.players, key = lambda x: self.board.get_score_for_colour(x.colour))
         
     def play_turn(self):

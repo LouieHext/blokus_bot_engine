@@ -1,5 +1,6 @@
 # Python Imports
 import time
+import copy
 # Extenral Imports
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -32,8 +33,18 @@ class Board:
         self.piece_sets = self._get_initial_piece_dict()
         self.__valid_moves_dict = {colour: [] for colour in BoardStatesEnum.get_player_colours()}
         self.__latest_move = None
-        self.brute_force_time = 0
         self.smart_time = 0
+        self.piece_check_time = 0
+        self.move_removal_time = 0
+        self.move_finding_time = 0
+        self.duplicate_time = 0
+
+    def print_times(self):
+        print(f"smart_time: {self.smart_time}")
+        print(f"piece_check_time: {self.piece_check_time}")
+        print(f"move_removal_time: {self.move_removal_time}")
+        print(f"move_finding_time: {self.move_finding_time}")
+        print(f"duplicate_time: {self.duplicate_time}")
     @property
     def array(self) -> np.ndarray:
         """Returns the state of the board as a nxn interger array,
@@ -104,7 +115,7 @@ class Board:
             (self.arr_dimension, self.arr_dimension),
         ]
         return corner_idxs
-
+    
     def play_move(self, move: Move):
         """Validates the move and if it is valid plays it on the board
 
@@ -162,7 +173,6 @@ class Board:
         bounds = np.linspace(0, 4, 5)
         norm = mpl.colors.BoundaryNorm(bounds, 4)
         plt.imshow(self.array, cmap=cmap, norm=norm)
-        
         plt.title(self.get_score_str())
         plt.show(block=stop_code)
         plt.pause(1e-5)
@@ -219,10 +229,6 @@ class Board:
             valid_moves = self._find_valid_moves_brute_force(colour)
             self.__valid_moves_dict[colour] = valid_moves
         # check the update worked like the brute force
-        import time 
-        s=time.time()
-        brute_force_moves = self._find_valid_moves_brute_force(colour)
-        self.brute_force_time += time.time()-s
         return self.__valid_moves_dict[colour]
 
     def _update_valid_moves(self):
@@ -232,15 +238,46 @@ class Board:
         created from the last move, then finding any new valid moves
         that could have been created from the last move.
         """
+        s = time.time()
         self._remove_moves_of_latest_piece()
+        self.piece_check_time += time.time()-s
+        s = time.time()
         self._remove_invalid_moves_from_last_move()
+        self.move_removal_time += time.time()-s
+        s = time.time()
         new_valid_moves = self._find_new_valid_moves_from_last_move()
+        self.move_finding_time += time.time()-s
+        s = time.time()
         latest_colour = self.latest_move.colour
-        for move in new_valid_moves:
-            if move in self.__valid_moves_dict[latest_colour]:
-                continue
-            self.__valid_moves_dict[latest_colour].append(move)
+        self._add_only_new_moves(new_valid_moves, latest_colour)
+        self.duplicate_time += time.time()-s
 
+    def _add_only_new_moves(self, new_valid_moves: list[Move], colour: BoardStatesEnum):
+        """Adds only the unique new valid moves to the valid moves dict
+
+        Args:
+            new_valid_moves (list[Move]): new valid moves
+            colour (BoardStatesEnum): colour to add the moves to
+        """
+        rep_nums = [self._convert_move_to_str_representation(move) for move in self.__valid_moves_dict[colour]]
+        for move in new_valid_moves:
+            rep_num = self._convert_move_to_str_representation(move)
+            if rep_num in rep_nums:
+                continue
+            self.__valid_moves_dict[colour].append(move)
+
+    def _convert_move_to_str_representation(self, move: Move) -> str:
+        """Converts a move to a int representation by joining the idxs into
+        a single int
+
+        Args:
+            move (Move): move to convert
+
+        Returns:
+            int: int representation
+        """
+        return "".join([str(idx[0])+str(idx[1]) for idx in move.idxs])
+    
     def _remove_moves_of_latest_piece(self):
         """Removes all moves of the latest piece from the valid moves
         for the latest colour
@@ -352,10 +389,9 @@ class Board:
                     move = Move.from_piece_representation(colour, piece.name, piece_rep, origin)
                     # check if the piece can be placed
                     if self.validate_move(move):
-                        if move in valid_moves:
-                            continue
                         valid_moves.append(move)
         return valid_moves
+
 
     def _get_possible_origins_for_colour(self, colour: BoardStatesEnum) -> list[tuple[int]]:
         """Returns all possible origins for the colour.
@@ -376,7 +412,11 @@ class Board:
         # get all the origins for the corners
         origins = []
         for corner in corner_idxs:
-            origins += self._get_valid_origins_from_corner(corner, colour)
+            new_origins = self._get_valid_origins_from_corner(corner, colour)
+            for origin in new_origins:
+                if origin in origins:
+                    continue
+                origins.append(origin)
         return origins
 
     def _get_valid_origins_from_corner(self, corner: tuple[int], colour: BoardStatesEnum) -> list[tuple[int]]:
@@ -476,12 +516,12 @@ class Board:
         error_list = []
         # validation methods, hard code
         if not validation_methods:
-            validation_methods = [
+           validation_methods = [
                 self._validate_in_bounds,
                 self._validate_unused_piece,
-                self._validate_corner_relation,
                 self._validate_overlap,
                 self._validate_edge_relation,
+                self._validate_corner_relation,
             ]
         # check each method, tracking errors as we go
         for validation_method in validation_methods:

@@ -42,8 +42,5 @@ class Move:
             Move: the move
         """
         # Get the indexes of the piece
-        idxs = []
-        for idx_pair in relative_representation:
-            idx = (idx_pair[0] + origin[0], idx_pair[1] + origin[1])
-            idxs.append(idx)
+        idxs = [(idx_pair[0] + origin[0], idx_pair[1] + origin[1]) for idx_pair in relative_representation]
         return cls(colour, piece_type, idxs)
