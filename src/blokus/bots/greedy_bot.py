@@ -1,15 +1,17 @@
-#Python imports
+# Python imports
 import random
-#Internal imports
-from blokus.player.base_player import BasePlayer
+
 from blokus.board import Board
 from blokus.board_states import BoardStatesEnum
 from blokus.move import Move
 
+# Internal imports
+from blokus.player.base_player import BasePlayer
+
 
 class GreedyBot(BasePlayer):
     """This bot plays with a greedy style,
-    it always plays the biggest possible piece. 
+    it always plays the biggest possible piece.
     If multiple pieces are possible it will randomly
     select between them.
     """

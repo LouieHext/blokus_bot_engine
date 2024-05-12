@@ -1,8 +1,10 @@
 import logging
+
 from blokus.board import Board
 from blokus.board_states import BoardStatesEnum
-from blokus.player.base_player import BasePlayer
 from blokus.exceptions import InvalidMove
+from blokus.player.base_player import BasePlayer
+
 
 class Game:
     def __init__(self, board: Board, players: list[BasePlayer], timeout: float = 30):
@@ -57,7 +59,7 @@ class Game:
         """
         return BoardStatesEnum.get_player_colours()
 
-    def play_game(self, display: bool = True)-> list[BasePlayer]:
+    def play_game(self, display: bool = True) -> list[BasePlayer]:
         """Plays the game,
         this continues until all players are unable to move.
         Returns the rankings of the players
@@ -73,12 +75,11 @@ class Game:
             if display:
                 self.board.display_board()
             logging.info(self.board.get_score_str())
-        self.board.print_times()
         if display:
             self.board.display_board(stop_code=True)
         print(f"FINAL SCORE: {self.board.get_score_str()}")
-        return sorted(self.players, key = lambda x: self.board.get_score_for_colour(x.colour))
-        
+        return sorted(self.players, key=lambda x: self.board.get_score_for_colour(x.colour))
+
     def play_turn(self):
         """Plays a single turn for all players
 

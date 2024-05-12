@@ -1,13 +1,13 @@
 # Internal Imports
-from blokus.player.local_player import LocalPlayer
 from blokus.board import Board
 from blokus.board_states import BoardStatesEnum
 from blokus.bots.bot_enums import BotEnum
+from blokus.player.local_player import LocalPlayer
 
 
 class PlayerFactory:
     @staticmethod
-    def build_local_player_from_enum(board: Board, colour: BoardStatesEnum, bot_enum:BotEnum) ->LocalPlayer:
+    def build_local_player_from_enum(board: Board, colour: BoardStatesEnum, bot_enum: BotEnum) -> LocalPlayer:
         """Builds a local player from the supplied enum
 
         Args:
@@ -18,4 +18,4 @@ class PlayerFactory:
         Returns:
             LocalPlayer: local player
         """
-        return bot_enum.cls(board,colour)
+        return bot_enum.cls(board, colour)

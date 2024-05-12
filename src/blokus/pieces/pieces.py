@@ -1,6 +1,7 @@
 # Python Imports
 # Extenral Imports
 import numpy as np
+
 from blokus.pieces.base import BasePiece
 
 # Intenral Imports
@@ -185,4 +186,3 @@ W = BasePiece(base_binary_repr=np.array(W_array), name=PieceNameEnum.W)
 O = BasePiece(base_binary_repr=np.array(O_array), name=PieceNameEnum.O)
 P = BasePiece(base_binary_repr=np.array(P_array), name=PieceNameEnum.P)
 Y = BasePiece(base_binary_repr=np.array(Y_array), name=PieceNameEnum.Y)
-

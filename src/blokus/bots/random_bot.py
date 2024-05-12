@@ -1,15 +1,16 @@
-#Python imports
+# Python imports
 import random
-#Internal imports
-from blokus.player.base_player import BasePlayer
+
 from blokus.board import Board
 from blokus.board_states import BoardStatesEnum
 from blokus.move import Move
 
+# Internal imports
+from blokus.player.base_player import BasePlayer
+
 
 class RandomBot(BasePlayer):
-    """This bot plays randomly simply selecting any of the valid moves
-    """
+    """This bot plays randomly simply selecting any of the valid moves"""
 
     def __init__(self, board: Board, colour: BoardStatesEnum):
         """initialiser for random bot, simply calls base
