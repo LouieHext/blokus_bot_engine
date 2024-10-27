@@ -58,7 +58,7 @@ class Game:
             list[BoardStatesEnum]: player colours
         """
         return BoardStatesEnum.get_player_colours()
-
+    
     def play_game(self, display: bool = True) -> list[BasePlayer]:
         """Plays the game,
         this continues until all players are unable to move.
@@ -78,7 +78,7 @@ class Game:
         if display:
             self.board.display_board(stop_code=True)
         print(f"FINAL SCORE: {self.board.get_score_str()}")
-        return sorted(self.players, key=lambda x: self.board.get_score_for_colour(x.colour))
+        return sorted(self.players, key=lambda x: self.board.get_score_for_colour(x.colour),reverse=True)
 
     def play_turn(self):
         """Plays a single turn for all players

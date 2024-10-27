@@ -1,5 +1,7 @@
 # Python Imports
 # Extenral Imports
+from copy import deepcopy
+from typing import Self
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +12,7 @@ from blokus.exceptions import InvalidMove
 from blokus.move import Move
 from blokus.pieces.piece_set import build_full_piece_set
 
-from blokus_bot_engine.src.blokus.pieces.piece_set import PieceSet
+from blokus.pieces.piece_set import PieceSet
 
 
 class Board:
@@ -24,7 +26,7 @@ class Board:
     additionally the board supports plotting
     """
 
-    def __init__(self, dimension: int = 20, board_array: np.ndarray = None):
+    def __init__(self, dimension: int = 20, board_array: np.ndarray = None, piece_set: dict[BoardStatesEnum, PieceSet] = None):
         self.__dimension = dimension
 
         if board_array is not None:
@@ -32,10 +34,36 @@ class Board:
         else:
             self.__array = self._get_empty_board()
 
-        self.piece_sets = self._get_initial_piece_dict()
+        if piece_set is not None:
+            self.__piece_sets = piece_set
+        else:
+            self.__piece_sets = self._get_initial_piece_dict()
 
-        self.__valid_moves_dict = {colour: [] for colour in BoardStatesEnum.get_player_colours()}
+        self.__valid_moves_dict: dict[BoardStatesEnum, list[Move]] = {colour: [] for colour in BoardStatesEnum.get_player_colours()}
         self.__latest_move = None
+        self.__move_list: list[Move] = []
+
+    def create_future_board_from_move(self, move: Move) -> Self:
+        """Creates a future board from a move
+
+        Args:
+            board (Board): board to create from
+            move (Move): move to play
+
+        Returns:
+            Board: future board
+        """
+        new_board = deepcopy(self.array)
+        for idx_pair in move.idxs:
+            row, col = idx_pair
+            new_board[row][col] = move.colour.int_id
+
+        new_piece_set = deepcopy(self.piece_sets)
+        new_piece_set[move.colour].remove_piece_by_name(move.piece_type)
+
+        future_board = Board(self.dimension, new_board, new_piece_set)
+        
+        return future_board
 
     def play_move(self, move: Move):
         """Validates the move and if it is valid plays it on the board
@@ -55,9 +83,10 @@ class Board:
             row, col = idx_pair
             self.__array[row][col] = move.colour.int_id
 
-        self.piece_sets[move.colour].remove_piece_by_name(move.piece_type)
+        self.__piece_sets[move.colour].remove_piece_by_name(move.piece_type)
 
         self.__latest_move = move
+        self.__move_list.append(move)
         self._update_valid_moves()
 
     def get_score_for_colour(self, colour: BoardStatesEnum) -> int:
@@ -112,13 +141,12 @@ class Board:
         temp_array = self._get_empty_board()
         for idx_pair in move.idxs:
             row, col = idx_pair
-            temp_array[row][col] = move.colour.int_id
+            temp_array[row][col] = 10
 
         plt.figure()
-        plt.imshow(self.array, cmap="binary")
-        plt.figure()
-        plt.imshow(temp_array, cmap="copper")
+        plt.imshow(self.array + temp_array, cmap="copper")
         if show:
+            plt.title(f"Move for {move.colour}")
             plt.show()
 
     def display_idxs(self, idxs: list[tuple[int]], on_empty_board: bool = True, show: bool = True):
@@ -227,7 +255,7 @@ class Board:
         error_list = self.check_move_validity(move)
         return not error_list
 
-    def check_if_corner_idx(self, idx: tuple[int]) -> bool:
+    def check_if_board_corner_idx(self, idx: tuple[int]) -> bool:
         """Checks if the supplied idx is the corner of a board.
 
         Args:
@@ -308,7 +336,7 @@ class Board:
         that could have been created from the last move.
         """
         self._remove_moves_of_latest_piece()
-        self._remove_invalid_moves_from_last_move()
+        self.remove_invalid_moves_based_on_last_move()
 
         new_valid_moves = self._find_new_valid_moves_from_last_move()
         latest_colour = self.latest_move.colour
@@ -326,7 +354,7 @@ class Board:
             move for move in self.__valid_moves_dict[latest_colour] if move.piece_type != latest_type
         ]
 
-    def _remove_invalid_moves_from_last_move(self):
+    def remove_invalid_moves_based_on_last_move(self):
         """Removes all moves that could have been made invalid
         by the last move.
         This could occur due to
@@ -336,9 +364,10 @@ class Board:
         - touching sides with the last move
 
         """
+
         # check against latest moves idxs
         latest_idxs = self.latest_move.idxs
-
+        
         # for each colour
         # find all the moves could have been affected by the last move
         for colour in BoardStatesEnum.get_player_colours():
@@ -367,6 +396,7 @@ class Board:
                     checked_moves.append(move)
 
             self.__valid_moves_dict[colour] = checked_moves
+
 
     def _get_neighbouring_idxs_from_idxs(self, idxs: list[tuple[int]]) -> list[tuple[int]]:
         """Gets all the neighbouring idxs from a list of idxs
@@ -440,7 +470,7 @@ class Board:
         """
         valid_moves = []
         for origin in origins:
-            for piece in self.piece_sets[colour].pieces:
+            for piece in self.__piece_sets[colour].pieces:
                 for piece_rep in piece.all_idx_representations:
 
                     # build move from representation
@@ -578,11 +608,11 @@ class Board:
             move (Move): move to check
 
         Raises:
-            InvalidMove: if the mnove idxs to match the move piece type
+            InvalidMove: if the move idxs to match the move piece type
         """
         # check if the idx matches the shape
 
-        piece = self.piece_sets[move.colour].get_piece_by_name(move.piece_type)
+        piece = self.__piece_sets[move.colour].get_piece_by_name(move.piece_type)
 
         # convert move idxs into a relative map
         binary_representation = self._get_binary_representation_from_move(move)
@@ -602,7 +632,7 @@ class Board:
         Raises:
             InvalidMove: if the piece has already been used
         """
-        if move.piece_type in self.piece_sets[move.colour].present_types:
+        if move.piece_type in self.__piece_sets[move.colour].present_types:
             return
         raise InvalidMove(f"The piece {move.piece_type} was already used by {move.colour}")
 
@@ -632,7 +662,7 @@ class Board:
         # idxs are from the same colourillegal_move
         for idx in move.idxs:
             # if its the first move in a corner this is obeyed
-            if self.check_if_corner_idx(idx):
+            if self.check_if_board_corner_idx(idx):
                 return
             diagonal_neighbours = self.get_diagonal_idxs_from_idx(idx)
             for diagonal_neighbour in diagonal_neighbours:
@@ -675,6 +705,7 @@ class Board:
         """
         if any(not self.check_coord_in_board(idx) for idx in move.idxs):
             raise InvalidMove(f"Move does not fit in the board, {move}")
+    
 
     def _get_initial_piece_dict(self) -> dict[BoardStatesEnum, PieceSet]:
         """Gets the initial dictionary of all the pieces
@@ -734,6 +765,15 @@ class Board:
             np.ndarray: current state of the board
         """
         return self.__array
+    
+    @property
+    def piece_sets(self) -> dict[BoardStatesEnum, PieceSet]:
+        """Returns the piece sets for each colour
+
+        Returns:
+            dict[BoardStatesEnum, PieceSet]: piece sets for each colour
+        """
+        return self.__piece_sets
 
     @property
     def flat_array(self) -> np.ndarray:
@@ -795,3 +835,26 @@ class Board:
             (self.arr_dimension, self.arr_dimension),
         ]
         return corner_idxs
+    
+    @property
+    def move_list(self) -> list[Move]:
+        """Returns all the moves played in the game
+        """
+        return self.__move_list
+    
+    def idx_pair_occupied(self,idx_pair: tuple[int,int]):
+        row, col = idx_pair
+        return self.array[row][col]
+    
+    def get_moves_since_last_turn(self,colour:BoardStatesEnum):
+        """Finds the moves played since the last turn of the supplied colour"""
+        moves_played = []
+
+        for move in self.__move_list[::-1]:
+            
+            if move.colour == colour:
+                break
+            
+            moves_played.append()
+
+        return moves_played

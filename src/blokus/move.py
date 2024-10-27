@@ -44,3 +44,7 @@ class Move:
         # Get the indexes of the piece
         idxs = [(idx_pair[0] + origin[0], idx_pair[1] + origin[1]) for idx_pair in relative_representation]
         return cls(colour, piece_type, idxs)
+
+
+    def __hash__(self) -> int:
+        return hash((self.colour, self.piece_type, tuple(self.idxs)))

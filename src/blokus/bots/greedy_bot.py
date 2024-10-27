@@ -16,15 +16,6 @@ class GreedyBot(BasePlayer):
     select between them.
     """
 
-    def __init__(self, board: Board, colour: BoardStatesEnum):
-        """initialiser for greedy bot, simply calls base
-
-        Args:
-            board (Board): board the game is being played on
-            colour (BoardStatesEnum): colour of the player
-        """
-        super().__init__(board, colour)
-
     def select_best_move(self, moves: list[Move]) -> Move:
         """Selects a random move
 

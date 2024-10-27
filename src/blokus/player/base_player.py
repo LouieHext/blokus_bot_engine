@@ -23,7 +23,7 @@ class BasePlayer(ABC):
         self.colour = colour
 
     @abstractmethod
-    def select_best_move(self, moves: list[Move]) -> Move:
+    def select_best_move(self, moves: list[Move], board:Board) -> Move:
         """Given a selection of valid moves, returns the move
         that the player thinks is best according to its internal logic.
 
