@@ -10,6 +10,8 @@ from blokus.exceptions import InvalidMove
 from blokus.move import Move
 from blokus.pieces.piece_set import build_full_piece_set
 
+from blokus_bot_engine.src.blokus.pieces.piece_set import PieceSet
+
 
 class Board:
     """
@@ -24,84 +26,16 @@ class Board:
 
     def __init__(self, dimension: int = 20, board_array: np.ndarray = None):
         self.__dimension = dimension
+
         if board_array is not None:
             self.__array = board_array
         else:
             self.__array = self._get_empty_board()
+
         self.piece_sets = self._get_initial_piece_dict()
+
         self.__valid_moves_dict = {colour: [] for colour in BoardStatesEnum.get_player_colours()}
         self.__latest_move = None
-
-    @property
-    def array(self) -> np.ndarray:
-        """Returns the state of the board as a nxn interger array,
-        the ints map to the colours via the BoardStatesEnum.
-
-        Returns:
-            np.ndarray: current state of the board
-        """
-        return self.__array
-
-    @property
-    def flat_array(self) -> np.ndarray:
-        """Returns the state of the board as a flat array
-
-        Returns:
-            np.ndarray: flat array of the board
-        """
-        return self.array.flatten()
-
-    @property
-    def latest_move(self) -> Move:
-        """Returns the latest move played on the board
-
-        Returns:
-            Move: latest move
-        """
-        return self.__latest_move
-
-    @property
-    def valid_moves_dict(self) -> dict[BoardStatesEnum, list[Move]]:
-        """Returns the valid moves for each colour
-
-        Returns:
-            dict[BoardStatesEnum, list[Move]]: valid moves for each colour
-        """
-        return self.__valid_moves_dict
-
-    @property
-    def dimension(self) -> int:
-        """returns the dimension of the board,
-        the board is nxn where is is the dimension
-
-        Returns:
-            int: dimensino of the board
-        """
-        return self.__dimension
-
-    @property
-    def arr_dimension(self) -> int:
-        """Returns the dimension of the array
-
-        Returns:
-            int: dimension of the array
-        """
-        return self.__dimension - 1
-
-    @property
-    def corner_idxs(self) -> list[tuple[int]]:
-        """Returns the corner idxs of the board.
-
-        Returns:
-            list[tuple[int]]: corner idxs
-        """
-        corner_idxs = [
-            (0, 0),
-            (0, self.arr_dimension),
-            (self.arr_dimension, 0),
-            (self.arr_dimension, self.arr_dimension),
-        ]
-        return corner_idxs
 
     def play_move(self, move: Move):
         """Validates the move and if it is valid plays it on the board
@@ -113,12 +47,16 @@ class Board:
             InvalidMove: If the move played was invalid
         """
         move_errors = self.check_move_validity(move)
+
         if move_errors:
             raise InvalidMove(f"supplied Move is invalid due to {move_errors}")
+        
         for idx_pair in move.idxs:
             row, col = idx_pair
             self.__array[row][col] = move.colour.int_id
+
         self.piece_sets[move.colour].remove_piece_by_name(move.piece_type)
+
         self.__latest_move = move
         self._update_valid_moves()
 
@@ -145,6 +83,7 @@ class Board:
         score_str = ""
         for colour in BoardStatesEnum.get_player_colours():
             score_str += f"{colour.str_id}: {self.get_score_for_colour(colour)} "
+
         return score_str
 
     def display_board(self, stop_code: bool = False):
@@ -157,6 +96,7 @@ class Board:
         cmap = mpl.colors.LinearSegmentedColormap.from_list("blokus", cmaplist, 5)
         bounds = np.linspace(0, 4, 5)
         norm = mpl.colors.BoundaryNorm(bounds, 4)
+
         plt.imshow(self.array, cmap=cmap, norm=norm)
         plt.title(self.get_score_str())
         plt.show(block=stop_code)
@@ -173,6 +113,7 @@ class Board:
         for idx_pair in move.idxs:
             row, col = idx_pair
             temp_array[row][col] = move.colour.int_id
+
         plt.figure()
         plt.imshow(self.array, cmap="binary")
         plt.figure()
@@ -190,9 +131,11 @@ class Board:
             temp_array = self._get_empty_board()
         else:
             temp_array = self.array
+
         for idx_pair in idxs:
             row, col = idx_pair
             temp_array[row][col] = 1
+
         plt.figure()
         plt.imshow(temp_array, cmap="copper")
         if show:
@@ -210,10 +153,11 @@ class Board:
         Returns:
             list[Move]: list of valid moves
         """
+        # if no moves played yet for colour, use brute force to find allowed moves
         if not any(value == colour.int_id for value in self.flat_array):
             valid_moves = self._find_valid_moves_brute_force(colour)
             self.__valid_moves_dict[colour] = valid_moves
-        # check the update worked like the brute force
+
         return self.__valid_moves_dict[colour]
 
     def check_move_validity(
@@ -238,6 +182,7 @@ class Board:
             list[str]: the errors of the move
         """
         error_list = []
+
         # validation methods, hard code
         if not validation_methods:
             validation_methods = [
@@ -247,17 +192,22 @@ class Board:
                 self._validate_edge_relation,
                 self._validate_corner_relation,
             ]
+
         # check each method, tracking errors as we go
         for validation_method in validation_methods:
+
             try:
                 validation_method(move)
             except InvalidMove as e:
                 error_list.append(e)
+
             if error_list and return_at_first_fail:
                 return error_list
+            
             # if out of bounds other checks are nonsensical and might break
             if validation_method == self._validate_in_bounds and error_list:
                 return error_list
+            
         # return error list
         return error_list
 
@@ -303,10 +253,12 @@ class Board:
         """
         # diagonal neighbours are +- 1 in both idxs
         row, col = idx
+        
         diagonal_idxs = []
         for x in [-1, 1]:
             for y in [-1, 1]:
                 diagonal_idxs.append((row + x, col + y))
+
         # remove any that are out of bounds
         diagonal_idxs = [idx_pair for idx_pair in diagonal_idxs if self.check_coord_in_board(idx_pair)]
         return diagonal_idxs
@@ -325,6 +277,7 @@ class Board:
         """
         # adjacent neighbours are +- 1 in one idx
         row, col = idx
+
         adjacent_idxs = []
         for x in [-1, 1]:
             adjacent_idxs.append((row + x, col))
@@ -356,8 +309,10 @@ class Board:
         """
         self._remove_moves_of_latest_piece()
         self._remove_invalid_moves_from_last_move()
+
         new_valid_moves = self._find_new_valid_moves_from_last_move()
         latest_colour = self.latest_move.colour
+
         self._add_only_new_moves(new_valid_moves, latest_colour)
 
     def _remove_moves_of_latest_piece(self):
@@ -366,6 +321,7 @@ class Board:
         """
         latest_colour = self.latest_move.colour
         latest_type = self.latest_move.piece_type
+
         self.__valid_moves_dict[latest_colour] = [
             move for move in self.__valid_moves_dict[latest_colour] if move.piece_type != latest_type
         ]
@@ -380,27 +336,36 @@ class Board:
         - touching sides with the last move
 
         """
+        # check against latest moves idxs
         latest_idxs = self.latest_move.idxs
-        # find all the idxs that could have been affected by the last move
-        # and the latest move for the colour
+
+        # for each colour
+        # find all the moves could have been affected by the last move
         for colour in BoardStatesEnum.get_player_colours():
+
             # if its the same colour we also need to check the neighbours
             # as sides cant touch between the same colour
             additional_idxs = []
             if colour == self.latest_move.colour:
                 additional_idxs = self._get_neighbouring_idxs_from_idxs(latest_idxs)
+
+            # check all existing valid moves for this colour to see if impaced
             checked_moves = []
             for move in self.__valid_moves_dict[colour]:
-                # move overlaps with the last move
+
+                # remove overlaps with the last move
                 if any(idx in latest_idxs for idx in move.idxs):
                     continue
+
                 # if doesnt touch any of the idxs its not affected
                 if not any(idx in additional_idxs for idx in move.idxs):
                     checked_moves.append(move)
                     continue
+
                 # impacted but still valid
                 if self.validate_move(move):
                     checked_moves.append(move)
+
             self.__valid_moves_dict[colour] = checked_moves
 
     def _get_neighbouring_idxs_from_idxs(self, idxs: list[tuple[int]]) -> list[tuple[int]]:
@@ -413,13 +378,17 @@ class Board:
             list[tuple[int]]: list of neighbouring idxs
         """
         neighbouring_idxs = []
+
         for idx in idxs:
+
             neighbours = self.get_adjacent_idxs_from_idx(idx)
+
             # remove duplicates
             for neighbour in neighbours:
                 if neighbour in neighbouring_idxs:
                     continue
                 neighbouring_idxs.append(neighbour)
+
         return neighbouring_idxs
 
     def _find_new_valid_moves_from_last_move(self) -> list[Move]:
@@ -429,14 +398,18 @@ class Board:
         Returns:
             list[Move]: list of new valid moves
         """
-        idxs = self.latest_move.idxs
+        last_move_idxs = self.latest_move.idxs
         colour = self.latest_move.colour
+
         # find corners of move
-        corner_idxs = [idx for idx in idxs if self._check_if_idx_is_corner_of_colour(idx, colour)]
+        corner_idxs = [idx for idx in last_move_idxs if self._check_if_idx_is_corner_of_colour(idx, colour)]
+
         origins = []
         for corner in corner_idxs:
             origins += self._get_valid_origins_from_corner(corner, colour)
+
         valid_moves = self._find_valid_moves_from_origins(colour, origins)
+
         return valid_moves
 
     def _find_valid_moves_brute_force(self, colour: BoardStatesEnum) -> list[Move]:
@@ -469,11 +442,14 @@ class Board:
         for origin in origins:
             for piece in self.piece_sets[colour].pieces:
                 for piece_rep in piece.all_idx_representations:
+
                     # build move from representation
                     move = Move.from_piece_representation(colour, piece.name, piece_rep, origin)
+
                     # check if the piece can be placed
                     if self.validate_move(move):
                         valid_moves.append(move)
+
         return valid_moves
 
     def _get_possible_origins_for_colour(self, colour: BoardStatesEnum) -> list[tuple[int]]:
@@ -490,16 +466,21 @@ class Board:
         if not any(value == colour.int_id for value in self.flat_array):
             empty_corners = [corner for corner in self.corner_idxs if not self.array[corner[0]][corner[1]]]
             return empty_corners
+        
         # get all the corners for the colour
         corner_idxs = self._get_corner_idxs_for_colour(colour)
+
         # get all the origins for the corners
         origins = []
         for corner in corner_idxs:
+
             new_origins = self._get_valid_origins_from_corner(corner, colour)
+
             for origin in new_origins:
                 if origin in origins:
                     continue
                 origins.append(origin)
+
         return origins
 
     def _get_valid_origins_from_corner(self, corner: tuple[int], colour: BoardStatesEnum) -> list[tuple[int]]:
@@ -515,16 +496,21 @@ class Board:
         # get all the diagonals from the corner
         possible_origins = self.get_diagonal_idxs_from_idx(corner)
         valid_origins = []
+
         for origin in possible_origins:
             # remove any that are already populated
             if self.array[origin[0]][origin[1]]:
                 continue
+
             # get the adjacent neighbours
             adjacent_neighbours = self.get_adjacent_idxs_from_idx(origin)
+
             # check if any of the neighbours are the same colour
             if any(self.array[neighbour[0]][neighbour[1]] == colour.int_id for neighbour in adjacent_neighbours):
                 continue
+
             valid_origins.append(origin)
+
         return valid_origins
 
     def _get_corner_idxs_for_colour(self, colour: BoardStatesEnum) -> list[tuple[int]]:
@@ -539,9 +525,12 @@ class Board:
         corner_idxs = []
         for row in range(self.dimension):
             for col in range(self.dimension):
+
                 if not self._check_if_idx_is_corner_of_colour((row, col), colour):
                     continue
+
                 corner_idxs.append((row, col))
+
         return corner_idxs
 
     def _check_if_idx_is_corner_of_colour(self, idx: tuple[int], colour: BoardStatesEnum) -> bool:
@@ -558,21 +547,27 @@ class Board:
         # if the cell is not the colour, skip
         if not self.array[row][col] == colour.int_id:
             return False
+        
         # find the horizontal and vertical neighbours
         vertical_neighbours = [(row, col - 1), (row, col + 1)]
         vertical_neighbours = [idx for idx in vertical_neighbours if self.check_coord_in_board(idx)]
         horizontal_neighbours = [(row - 1, col), (row + 1, col)]
         horizontal_neighbours = [idx for idx in horizontal_neighbours if self.check_coord_in_board(idx)]
+
+        # find neightbour count of colour
         horizonal_score = sum([self.array[_row][_col] == colour.int_id for _row, _col in horizontal_neighbours])
         vertical_score = sum([self.array[_row][_col] == colour.int_id for _row, _col in vertical_neighbours])
+
         # account for game borders
         if row in [0, self.arr_dimension]:
             horizonal_score += 1
         if col in [0, self.arr_dimension]:
             vertical_score += 1
+
         # corner has only 1 neighbour in vertical or horizontal
         if horizonal_score > 1 or vertical_score > 1:
             return False
+        
         return True
 
     def _validate_piece_idx_matches_type(self, move: Move):
@@ -586,10 +581,14 @@ class Board:
             InvalidMove: if the mnove idxs to match the move piece type
         """
         # check if the idx matches the shape
+
         piece = self.piece_sets[move.colour].get_piece_by_name(move.piece_type)
+
         # convert move idxs into a relative map
         binary_representation = self._get_binary_representation_from_move(move)
+
         # check if this map exists in the piece representations
+
         if binary_representation not in piece.all_idx_representations:
             raise InvalidMove(f"The supplied idx do not match the piece type shape {move}")
 
@@ -677,7 +676,7 @@ class Board:
         if any(not self.check_coord_in_board(idx) for idx in move.idxs):
             raise InvalidMove(f"Move does not fit in the board, {move}")
 
-    def _get_initial_piece_dict(self) -> dict:
+    def _get_initial_piece_dict(self) -> dict[BoardStatesEnum, PieceSet]:
         """Gets the initial dictionary of all the pieces
         the keys are the colours,
         the values are the list of all piece enums
@@ -725,3 +724,74 @@ class Board:
             int: int representation
         """
         return "".join([str(idx[0]) + str(idx[1]) for idx in move.idxs])
+
+    @property
+    def array(self) -> np.ndarray:
+        """Returns the state of the board as a nxn interger array,
+        the ints map to the colours via the BoardStatesEnum.
+
+        Returns:
+            np.ndarray: current state of the board
+        """
+        return self.__array
+
+    @property
+    def flat_array(self) -> np.ndarray:
+        """Returns the state of the board as a flat array
+
+        Returns:
+            np.ndarray: flat array of the board
+        """
+        return self.array.flatten()
+
+    @property
+    def latest_move(self) -> Move:
+        """Returns the latest move played on the board
+
+        Returns:
+            Move: latest move
+        """
+        return self.__latest_move
+
+    @property
+    def valid_moves_dict(self) -> dict[BoardStatesEnum, list[Move]]:
+        """Returns the valid moves for each colour
+
+        Returns:
+            dict[BoardStatesEnum, list[Move]]: valid moves for each colour
+        """
+        return self.__valid_moves_dict
+
+    @property
+    def dimension(self) -> int:
+        """returns the dimension of the board,
+        the board is nxn where is is the dimension
+
+        Returns:
+            int: dimensino of the board
+        """
+        return self.__dimension
+
+    @property
+    def arr_dimension(self) -> int:
+        """Returns the dimension of the array
+
+        Returns:
+            int: dimension of the array
+        """
+        return self.__dimension - 1
+
+    @property
+    def corner_idxs(self) -> list[tuple[int]]:
+        """Returns the corner idxs of the board.
+
+        Returns:
+            list[tuple[int]]: corner idxs
+        """
+        corner_idxs = [
+            (0, 0),
+            (0, self.arr_dimension),
+            (self.arr_dimension, 0),
+            (self.arr_dimension, self.arr_dimension),
+        ]
+        return corner_idxs
