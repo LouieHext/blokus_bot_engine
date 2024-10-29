@@ -1,6 +1,8 @@
 # Python Imports
 # Extenral Imports
-from copy import deepcopy
+from calendar import c
+from copy import copy, deepcopy
+from functools import cache, cached_property
 from typing import Self
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -29,16 +31,9 @@ class Board:
     def __init__(self, dimension: int = 20, board_array: np.ndarray = None, piece_set: dict[BoardStatesEnum, PieceSet] = None):
         self.__dimension = dimension
 
-        if board_array is not None:
-            self.__array = board_array
-        else:
-            self.__array = self._get_empty_board()
-
-        if piece_set is not None:
-            self.__piece_sets = piece_set
-        else:
-            self.__piece_sets = self._get_initial_piece_dict()
-
+        self.__array = board_array if board_array is not None else self._get_empty_board()
+        self.__piece_sets = piece_set if piece_set is not None else self._get_initial_piece_dict()
+        
         self.__valid_moves_dict: dict[BoardStatesEnum, list[Move]] = {colour: [] for colour in BoardStatesEnum.get_player_colours()}
         self.__latest_move = None
         self.__move_list: list[Move] = []
@@ -53,14 +48,16 @@ class Board:
         Returns:
             Board: future board
         """
-        new_board = deepcopy(self.array)
+        new_board = np.copy(self.array)
+
         for idx_pair in move.idxs:
             row, col = idx_pair
             new_board[row][col] = move.colour.int_id
 
-        new_piece_set = deepcopy(self.piece_sets)
-        new_piece_set[move.colour].remove_piece_by_name(move.piece_type)
-
+        # create new piece set, only copying the pieces being removed
+        new_piece_set = {colour: piece_set for colour, piece_set in self.piece_sets.items() if colour != move.colour}
+        new_piece_set[move.colour] = PieceSet(pieces = [piece for piece in self.piece_sets[move.colour].pieces if piece.name != move.piece_type])
+        
         future_board = Board(self.dimension, new_board, new_piece_set)
         
         return future_board
@@ -126,7 +123,14 @@ class Board:
         bounds = np.linspace(0, 4, 5)
         norm = mpl.colors.BoundaryNorm(bounds, 4)
 
-        plt.imshow(self.array, cmap=cmap, norm=norm)
+        plt.imshow(self.array, cmap=cmap, norm=norm,extent=[0, self.dimension, 0, self.dimension],alpha=0.8)
+        plt.gca().set_xticks(np.arange(0, self.dimension, 1))
+        plt.gca().set_yticks(np.arange(0, self.dimension, 1))
+        plt.grid(visible=True, color="black", linestyle="-", linewidth=0.7, alpha=0.4)
+        plt.gca().tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+
+        # make even grid
+        plt.gca().set_aspect("equal", adjustable="box")
         plt.title(self.get_score_str())
         plt.show(block=stop_code)
         plt.pause(1e-5)
@@ -215,10 +219,10 @@ class Board:
         if not validation_methods:
             validation_methods = [
                 self._validate_in_bounds,
-                self._validate_unused_piece,
                 self._validate_overlap,
                 self._validate_edge_relation,
                 self._validate_corner_relation,
+                self._validate_unused_piece,
             ]
 
         # check each method, tracking errors as we go
@@ -266,31 +270,32 @@ class Board:
         """
         # checks if an idx is a corner idx.
         return idx in self.corner_idxs
-
-    def get_diagonal_idxs_from_idx(self, idx: tuple[int]) -> list[tuple[int]]:
-        """Gets the diagonal idxs from a given index.
-        These are +/- 1 for row and column.
-
-        Additionally checks that we are in the bounds
-
-        Args:
-            idx (tuple[int]): index to check
-
-        Returns:
-            list[tuple[int]]: diagonal indices
-        """
-        # diagonal neighbours are +- 1 in both idxs
+    
+    @cache
+    def get_diagonal_idxs_from_idx(self, idx: tuple[int, int]) -> list[tuple[int, int]]:
+        """Gets the diagonal indices from a given index within bounds."""
         row, col = idx
-        
-        diagonal_idxs = []
-        for x in [-1, 1]:
-            for y in [-1, 1]:
-                diagonal_idxs.append((row + x, col + y))
 
-        # remove any that are out of bounds
-        diagonal_idxs = [idx_pair for idx_pair in diagonal_idxs if self.check_coord_in_board(idx_pair)]
+        # Only include diagonal indices that are within bounds
+        diagonal_idxs = [
+            (row + dx, col + dy)
+            for dx, dy in self.diagonal_offsets
+            if self.check_coord_in_board((row + dx, col + dy))
+        ]
+
         return diagonal_idxs
 
+    @cached_property
+    def adjacent_offsets(self) -> list[tuple[int, int]]:
+        """Cached list of offsets for adjacent indices."""
+        return [(1, 0), (-1, 0), (0, 1), (0, -1)]
+    
+    @cached_property
+    def diagonal_offsets(self) -> list[tuple[int, int]]:
+        """Cached list of offsets for diagonal indices."""
+        return [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+
+    @cache
     def get_adjacent_idxs_from_idx(self, idx: tuple[int]) -> list[tuple[int]]:
         """Gets the adjacent idxs from a given index.
         These are +/- 1 for row and column but never both
@@ -305,17 +310,14 @@ class Board:
         """
         # adjacent neighbours are +- 1 in one idx
         row, col = idx
-
-        adjacent_idxs = []
-        for x in [-1, 1]:
-            adjacent_idxs.append((row + x, col))
-        for y in [-1, 1]:
-            adjacent_idxs.append((row, col + y))
-
-        # remove any that are out of bounds
-        adjacent_idxs = [idx_pair for idx_pair in adjacent_idxs if self.check_coord_in_board(idx_pair)]
+        adjacent_idxs = [
+            (row + dx, col + dy)
+            for dx, dy in self.adjacent_offsets
+            if self.check_coord_in_board((row + dx, col + dy))
+        ]
         return adjacent_idxs
 
+    @cache
     def check_coord_in_board(self, coord_pair: tuple[int]) -> bool:
         """Checks that a given coord pair exists within the board.
 
@@ -326,7 +328,7 @@ class Board:
         Returns:
             bool : if the coord pair is in the board
         """
-        return all([0 <= coord <= self.arr_dimension for coord in coord_pair])
+        return all(0 <= coord <= self.arr_dimension for coord in coord_pair)
 
     def _update_valid_moves(self):
         """Updates the valid moves for each colour.
@@ -686,13 +688,11 @@ class Board:
         # checks that the move does not share any borders with existing moves of
         # the colour
         for idx in move.idxs:
-            # get neighbours
-            adjacent_neighbours = self.get_adjacent_idxs_from_idx(idx)
-            for adjacent_neighbour in adjacent_neighbours:
-                # check each
-                row, col = adjacent_neighbour
+            # Get adjacent neighbors
+            for row, col in self.get_adjacent_idxs_from_idx(idx):
+                # Check if the adjacent cell has the same color ID
                 if self.array[row][col] == move.colour.int_id:
-                    raise InvalidMove(f"The move does not objey the side relation, {move}")
+                    raise InvalidMove(f"The move does not obey the side relation, {move}")
 
     def _validate_in_bounds(self, move: Move):
         """Checks that the move is fully contained within the board
@@ -703,8 +703,9 @@ class Board:
         Raises:
             InvalidMove: if the move does not fit within the board
         """
-        if any(not self.check_coord_in_board(idx) for idx in move.idxs):
-            raise InvalidMove(f"Move does not fit in the board, {move}")
+        for idx in move.idxs:
+            if not self.check_coord_in_board(idx):
+                raise InvalidMove(f"Move does not fit in the board, {move}")
     
 
     def _get_initial_piece_dict(self) -> dict[BoardStatesEnum, PieceSet]:
@@ -802,7 +803,7 @@ class Board:
         """
         return self.__valid_moves_dict
 
-    @property
+    @cached_property
     def dimension(self) -> int:
         """returns the dimension of the board,
         the board is nxn where is is the dimension
@@ -812,7 +813,7 @@ class Board:
         """
         return self.__dimension
 
-    @property
+    @cached_property
     def arr_dimension(self) -> int:
         """Returns the dimension of the array
 
@@ -821,7 +822,7 @@ class Board:
         """
         return self.__dimension - 1
 
-    @property
+    @cached_property
     def corner_idxs(self) -> list[tuple[int]]:
         """Returns the corner idxs of the board.
 
@@ -842,6 +843,15 @@ class Board:
         """
         return self.__move_list
     
+    @property
+    def centre_idx(self) -> tuple[int]:
+        """Returns the centre idx of the board
+
+        Returns:
+            tuple[int]: centre idx
+        """
+        return (self.dimension//2,self.dimension//2)
+    
     def idx_pair_occupied(self,idx_pair: tuple[int,int]):
         row, col = idx_pair
         return self.array[row][col]
@@ -857,4 +867,12 @@ class Board:
             
             moves_played.append()
 
-        return moves_played
+        return moves_played 
+    
+    def get_distance_from_center(self, move: Move):
+        distances = []
+        for idx in move.idxs:
+            distance = ((self.centre_idx[0]-idx[0])**2 + (self.centre_idx[1]-idx[1])**2)**0.5
+            distances.append(distance)
+        return min(distances)
+

@@ -1,5 +1,6 @@
 # Python Imports
 from dataclasses import dataclass, field
+from typing import Iterator
 
 # Extenral Imports
 # Intenral Imports
@@ -25,6 +26,9 @@ class PieceSet:
 
     def __contains__(self, piece: BasePiece) -> bool:
         return piece in self.pieces
+    
+    def __iter__(self) -> Iterator[BasePiece]: 
+        return iter(self.pieces)
 
     @property
     def present_types(self) -> list[PieceNameEnum]:

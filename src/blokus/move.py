@@ -48,3 +48,16 @@ class Move:
 
     def __hash__(self) -> int:
         return hash((self.colour, self.piece_type, tuple(self.idxs)))
+    
+    @property
+    def span(self) -> int:
+        """Returns the span of the move,
+        which is the width + height of the move
+
+        Returns:
+            tuple[int]: span of the move
+        """
+        x_coords = [idx[0] for idx in self.idxs]
+        y_coords = [idx[1] for idx in self.idxs]
+        return max(x_coords) - min(x_coords) + max(y_coords) - min(y_coords)   
+    
