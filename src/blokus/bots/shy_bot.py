@@ -9,8 +9,12 @@ from blokus.move import Move
 from blokus.player.base_player import BasePlayer
 
 
-class RandomBot(BasePlayer):
-    """This bot plays randomly simply selecting any of the valid moves"""
+class ShyBot(BasePlayer):
+    """This bot plays with a shy style,
+    it always plays the smallest possible piece.
+    If multiple pieces are possible it will randomly
+    select between them.
+    """
 
     def select_best_move(self, moves: list[Move]) -> Move:
         """Selects a random move
@@ -21,4 +25,6 @@ class RandomBot(BasePlayer):
         Returns:
             Move: randomly selected move
         """
-        return random.choice(moves)
+        smallest_move = min(moves, key=lambda x: len(x.idxs))
+        smallest_moves = [move for move in moves if len(move.idxs) == len(smallest_move.idxs)]
+        return random.choice(smallest_moves)
